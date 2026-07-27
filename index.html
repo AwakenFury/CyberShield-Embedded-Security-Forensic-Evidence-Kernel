@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ESP32 Advanced Forensic Console</title>
+    <style>
+        :root { --bg-main: #0f172a; --bg-card: #1e293b; --text-main: #f8fafc; --text-muted: #94a3b8; --border: #334155; --accent: #3b82f6; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg-main); color: var(--text-main); padding: 20px; margin: 0; }
+        .container { max-width: 1100px; margin: 0 auto; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; }
+        @media(max-width:768px){ .grid, .grid-code { grid-template-columns: 1fr !important; } }
+        .card { background: var(--bg-card); padding: 20px; border-radius: 8px; margin-bottom: 15px; border: 1px solid var(--border); }
+        .status-box { padding: 12px; border-radius: 6px; font-weight: bold; text-align: center; font-size: 18px; }
+        .status-good { background: #065f46; color: #34d399; }
+        .status-bad { background: #991b1b; color: #f87171; animation: pulse 1.5s infinite; }
+        .metric-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); }
+        .metric-label { color: var(--text-muted); }
+        .metric-value { font-family: monospace; font-weight: bold; }
+        .btn { display: block; width: 100%; background: var(--accent); color: white; border: none; padding: 12px; border-radius: 6px; font-weight: bold; cursor: pointer; text-align: center; margin-top: 15px; box-sizing: border-box; text-decoration: none; }
+        .btn-warn { background: #dc2626; margin-top: 10px; }
+        .btn-sec { background: #475569; margin-top: 10px; }
+        .input-field { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border); background: #0f172a; color: white; margin-top: 5px; margin-bottom: 10px; box-sizing: border-box; }
+        .terminal { background: #020617; border: 1px solid var(--border); border-radius: 6px; padding: 10px; font-family: monospace; font-size: 12px; height: 160px; overflow-y: auto; color: #38bdf8; white-space: pre-wrap; box-sizing: border-box; }
+        .grid-code { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .code-title { font-weight: bold; color: #60a5fa; margin-bottom: 5px; font-size: 14px; }
+        .code-view { background: #020617; border: 1px solid var(--border); border-radius: 6px; padding: 12px; font-family: 'Courier New', monospace; font-size: 11px; height: 320px; overflow: auto; color: #cbd5e1; white-space: pre; box-sizing: border-box; text-align: left; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-family: monospace; font-size: 12px; }
+        th, td { text-align: left; padding: 8px; border-bottom: 1px solid var(--border); }
+        th { color: var(--text-muted); }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 1. Connection Sync Monitor Box -->
+        <div class="card"><div id="statusAlert" class="status-box status-good">AWAITING SYSTEM SYNCHRONIZATION...</div></div>
+        
+        <!-- 2. The Integrated Forensic Compliance Card -->
+        <div class="card" style="border: 1px solid #dc2626; background: #1e1b4b;">
+            <h3 style="color: #f87171; margin-top: 0; display: flex; align-items: center; gap: 8px;">⚖️ FORENSIC COMPLIANCE NOTICE</h3>
+            <p style="color: #fca5a5; font-size: 12px; margin: 0; line-height: 1.5;">
+                <b>WARNING:</b> This kernel automatically generates standardized, timestamped forensic records of all physical and network interactions. Unauthorized attempts to alter software partitions, reverse-engineer schematics, or duplicate this hardware fingerprint constitute computational fraud. All captured MAC addresses, packet attributes, and tamper events are logged to encrypted storage arrays for immediate legal cross-examination.
+            </p>
+        </div>
+
+        <!-- 3. Firmware Matrix Block -->
+        <div class="card">
+            <h3>📑 Active Running Firmware Snapshot</h3>
+            <div class="metric-row"><span class="metric-label">Global Compile Timestamp</span><span id="firmwareTimestamp" style="color:#60a5fa;" class="metric-value">--</span></div>
+            <div class="metric-row"><span class="metric-label">Active Flash Location</span><span id="partVal" class="metric-value">--</span></div>
+            <div class="metric-row"><span class="metric-label">SHA-256 Sign Fingerprint</span><span id="hashVal" class="metric-value">--</span></div>
+        </div>
+
+        <!-- 4. Allocation Architecture Grid Table -->
+        <div class="card">
+            <h3>🗂️ Flash Hardware Partition Allocation Map</h3>
+            <table>
+                <thead><tr><th>Partition Slot</th><th>Address Block</th><th>Status Allocation</th></tr></thead>
+                <tbody>
+                    <tr><td>ota_0 (Slot A)</td><td>0x10000</td><td id="slotA_State">Scanning...</td></tr>
+                    <tr><td>ota_1 (Slot B)</td><td>0x1D0000</td><td id="slotB_State">Scanning...</td></tr>
+                </tbody>
+            </table>
+            <div style="display:flex; gap:10px;">
+                <a href="/api/export-csv" class="btn btn-sec" style="font-size:12px; padding:8px; margin-top:10px;">📥 Export Allocation Log (.CSV)</a>
+                <button class="btn btn-sec" style="font-size:12px; padding:8px; margin-top:10px;" onclick="window.print()">🖨️ Snapshot Screen View</button>
+            </div>
+        </div>
+
+        <!-- 5. Side-by-Side Live C++ Sketch Terminals -->
+        <div class="card">
+            <h3>🔬 Source Code Diff & Verification Panel</h3>
+            <div class="grid-code">
+                <div>
+                    <div class="code-title">📦 Slot A: /stock.txt (Fallback Factory Base)</div>
+                    <div id="stockCodeBlock" class="code-view">Loading base traces...</div>
+                </div>
+                <div>
+                    <div class="code-title">🚀 Slot B: /current.txt (Active Arduino IDE Sketch)</div>
+                    <div id="currentCodeBlock" class="code-view">Loading active code loops...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 6. Real-Time Diagnostics Metrics -->
+        <div class="grid">
+            <div class="card">
+                <h3>🌡7; Telemetry Channels</h3>
+                <div class="metric-row"><span class="metric-label">Internal Core Temp</span><span id="tempVal" class="metric-value" style="color:#ef4444;">-- °C</span></div>
+                <div class="metric-row"><span class="metric-label">Free Dynamic RAM</span><span id="ramVal" class="metric-value">-- bytes</span></div>
+                <div class="metric-row"><span class="metric-label">Active Radio Connections</span><span id="connVal" class="metric-value">--</span></div>
+                <div class="metric-row"><span class="metric-label">Magnetic Flags</span><span id="magVal" class="metric-value">0</span></div>
+            </div>
+            <div class="card">
+                <h3>🔄 Partition Management</h3>
+                <label class="metric-label" for="passKey">Emergency Recovery Pin</label>
+                <input type="password" id="passKey" class="input-field" placeholder="Verification code...">
+                <button class="btn btn-warn" style="padding:8px; margin:0;" onclick="triggerRollback()">Force Firmware Rollback</button>
+            </div>
+        </div>
+        
+        <!-- 7. Active Streaming Activity Log Terminal -->
+        <div class="card">
+            <h3>📡 Stream Output Logs</h3>
+            <div id="logTerminal" class="terminal">Hooking stream vectors...</div>
+        </div>
+    </div>
+    <script>
+        fetch('/api/view-code?type=stock').then(r => r.text()).then(t => { document.getElementById('stockCodeBlock').innerText = t; });
+        fetch('/api/view-code?type=current').then(r => r.text()).then(t => { document.getElementById('currentCodeBlock').innerText = t; });
+
+        const eventSource = new EventSource('/stream');
+        eventSource.onmessage = function(event) {
+            let data = JSON.parse(event.data);
+            
+            document.getElementById('firmwareTimestamp').innerText = data.compile_date + " @ " + data.compile_time;
+            document.getElementById('partVal').innerText = data.partition + " (Active Runtime Layer)";
+            document.getElementById('hashVal').innerText = data.hash.substring(0, 24) + "...";
+            
+            if(data.partition === "ota_0") {
+                document.getElementById('slotA_State').innerHTML = "<b style='color:#34d399;'>ACTIVE APPLICATION</b>";
+                document.getElementById('slotB_State').innerHTML = "<span style='color:#94a3b8;'>ROLLBACK FALLBACK TARGET</span>";
+            } else {
+                document.getElementById('slotA_State').innerHTML = "<span style='color:#94a3b8;'>ROLLBACK FALLBACK TARGET</span>";
+                document.getElementById('slotB_State').innerHTML = "<b style='color:#34d399;'>ACTIVE APPLICATION</b>";
+            }
+
+            document.getElementById('tempVal').innerText = data.temp.toFixed(1) + " °C";
+            document.getElementById('ramVal').innerText = data.free_ram.toLocaleString() + " bytes";
+            document.getElementById('connVal').innerText = data.connections;
+            document.getElementById('magVal').innerText = data.magnetic_events;
+            
+            const alertBox = document.getElementById('statusAlert');
+            if (data.compromised) {
+                alertBox.innerText = "🚨 CRITICAL STATE: " + data.reason;
+                alertBox.className = "status-box status-bad";
+            } else {
+
+
+
+
+                alertBox.innerText = "SECURITY SHIELD ACTIVE - STREAM LOCK SYNCED";
+                alertBox.className = "status-box status-good";
+            }
+
+            if(data.log_msg) {
+                let term = document.getElementById('logTerminal');
+                term.innerText += "\n" + data.log_msg;
+                term.scrollTop = term.scrollHeight;
+            }
+        };
+
+        function triggerRollback() {
+            const passValue = document.getElementById('passKey').value;
+            if (!passValue) return;
+            let formData = new FormData();
+            formData.append("passphrase", passValue);
+            fetch('/api/rollback', { method: 'POST', body: formData });
+        }
+    </script>
+</body>
+</html>
