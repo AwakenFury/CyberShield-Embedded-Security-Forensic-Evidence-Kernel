@@ -1,4 +1,4 @@
-![CyberShield-Embedded-Security-Forensic-Evidence-Kernel](<assets/ChatGPT Image Jul 22, 2026, 07_10_33 PM.png>)
+![CyberShield-Embedded-Security-Forensic-Evidence-Kernel](<assets/assets/image_781fb911.png>)
 ![Status](https://img.shields.io/badge/status-experimental-red)
 ![ESP32](https://img.shields.io/badge/platform-ESP32-blue)
 
