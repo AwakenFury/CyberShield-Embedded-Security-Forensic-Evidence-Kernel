@@ -1,3 +1,14 @@
+![CyberShield-Embedded-Security-Forensic-Evidence-Kernel](<assets/ChatGPT Image Jul 22, 2026, 07_10_33 PM.png>)
+![Status](https://img.shields.io/badge/status-experimental-red)
+![ESP32](https://img.shields.io/badge/platform-ESP32-blue)
+
+<p align="center">
+  <a href="https://awakenfury.github.io/CyberShield-Embedded-Security-Forensic-Evidence-Kernel/">
+    🌐 Live Demo
+  </a>
+</p>
+
+
 # CyberShield-Embedded-Security-Forensic-Evidence-Kernel
 An ESP32 security kernel focused on forensic accountability. CyberShield standardizes evidence generation by logging all hardware, network, and memory tamper events into cryptographically signed timelines. Features SSE live diagnostics, thermal glitch protection, and secure partition rollbacks to provide legal proof of reverse engineering.
 
