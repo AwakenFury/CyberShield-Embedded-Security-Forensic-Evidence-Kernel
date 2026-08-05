@@ -1,0 +1,1568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#07111f" />
+  <title>CyberShield Embedded Security Kernel</title>
+
+  <style>
+    :root {
+      --bg: #050b14;
+      --panel: #0a1423;
+      --panel-2: #0d1a2d;
+      --panel-3: #08111e;
+      --border: #18304d;
+      --border-soft: rgba(49, 101, 147, 0.26);
+      --text: #e6f3ff;
+      --muted: #7f98ad;
+      --cyan: #24c7ff;
+      --cyan-soft: rgba(36, 199, 255, 0.12);
+      --green: #4ee06f;
+      --green-soft: rgba(78, 224, 111, 0.12);
+      --yellow: #ffbf3f;
+      --yellow-soft: rgba(255, 191, 63, 0.12);
+      --red: #ff4b5c;
+      --red-soft: rgba(255, 75, 92, 0.12);
+      --purple: #9a7cff;
+      --shadow: 0 16px 40px rgba(0, 0, 0, 0.34);
+      --radius: 14px;
+      --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(36, 199, 255, 0.08), transparent 28%),
+        radial-gradient(circle at bottom right, rgba(154, 124, 255, 0.07), transparent 24%),
+        linear-gradient(180deg, #06101b 0%, var(--bg) 100%);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    .app-shell {
+      display: grid;
+      grid-template-columns: 245px minmax(0, 1fr);
+      min-height: 100vh;
+    }
+
+    .sidebar {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      padding: 22px 18px;
+      background: rgba(5, 13, 24, 0.92);
+      border-right: 1px solid var(--border);
+      backdrop-filter: blur(12px);
+      z-index: 20;
+    }
+
+    .brand {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+
+    .brand-mark {
+      display: grid;
+      place-items: center;
+      width: 48px;
+      height: 54px;
+      border: 1px solid rgba(36, 199, 255, 0.45);
+      border-radius: 15px 15px 18px 18px;
+      color: var(--cyan);
+      background: linear-gradient(180deg, rgba(36, 199, 255, 0.14), rgba(36, 199, 255, 0.03));
+      box-shadow: inset 0 0 18px rgba(36, 199, 255, 0.08);
+      font-size: 25px;
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: 20px;
+      letter-spacing: 0.08em;
+      color: #9fe8ff;
+    }
+
+    .brand p {
+      margin: 3px 0 0;
+      color: var(--muted);
+      font-size: 10px;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+    }
+
+    .nav {
+      display: grid;
+      gap: 6px;
+    }
+
+    .nav a {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-height: 42px;
+      padding: 0 12px;
+      color: #afc2d3;
+      text-decoration: none;
+      border: 1px solid transparent;
+      border-radius: 9px;
+      font-size: 12px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      transition: 160ms ease;
+    }
+
+    .nav a:hover,
+    .nav a.active {
+      color: #dff7ff;
+      border-color: rgba(36, 199, 255, 0.25);
+      background: linear-gradient(90deg, rgba(36, 199, 255, 0.16), rgba(36, 199, 255, 0.05));
+    }
+
+    .nav-icon {
+      width: 22px;
+      text-align: center;
+      color: var(--cyan);
+    }
+
+    .console-card {
+      margin-top: auto;
+      padding: 14px;
+      border: 1px solid rgba(78, 224, 111, 0.28);
+      border-radius: 12px;
+      background: rgba(78, 224, 111, 0.06);
+    }
+
+    .console-card strong {
+      display: block;
+      color: var(--green);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .console-card span {
+      display: block;
+      margin-top: 6px;
+      font-family: var(--mono);
+      color: #d4fbe0;
+      font-size: 12px;
+    }
+
+    .sidebar-footer {
+      margin-top: 16px;
+      color: #547088;
+      font-size: 10px;
+      line-height: 1.6;
+    }
+
+    .main {
+      min-width: 0;
+      padding: 18px;
+    }
+
+    .topbar {
+      display: grid;
+      grid-template-columns: 1.2fr repeat(4, minmax(120px, 0.7fr));
+      gap: 10px;
+      align-items: stretch;
+      margin-bottom: 12px;
+    }
+
+    .top-cell {
+      min-width: 0;
+      padding: 12px 14px;
+      border: 1px solid var(--border-soft);
+      border-radius: 10px;
+      background: rgba(9, 20, 35, 0.72);
+      box-shadow: var(--shadow);
+    }
+
+    .top-cell .label {
+      display: block;
+      color: var(--muted);
+      font-size: 9px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .top-cell .value {
+      display: block;
+      margin-top: 5px;
+      font-family: var(--mono);
+      font-size: 12px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .node-online {
+      color: var(--green);
+    }
+
+    .status-banner {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 44px;
+      margin-bottom: 12px;
+      padding: 10px 16px;
+      border: 1px solid rgba(78, 224, 111, 0.45);
+      border-radius: 10px;
+      background: linear-gradient(90deg, rgba(78, 224, 111, 0.08), rgba(78, 224, 111, 0.14), rgba(78, 224, 111, 0.08));
+      color: var(--green);
+      font-weight: 800;
+      font-size: 13px;
+      letter-spacing: 0.08em;
+      text-align: center;
+      text-transform: uppercase;
+    }
+
+    .status-banner.bad {
+      color: var(--red);
+      border-color: rgba(255, 75, 92, 0.45);
+      background: linear-gradient(90deg, rgba(255, 75, 92, 0.08), rgba(255, 75, 92, 0.15), rgba(255, 75, 92, 0.08));
+      animation: pulse 1.4s infinite;
+    }
+
+    .status-banner.warn {
+      color: var(--yellow);
+      border-color: rgba(255, 191, 63, 0.45);
+      background: linear-gradient(90deg, rgba(255, 191, 63, 0.08), rgba(255, 191, 63, 0.15), rgba(255, 191, 63, 0.08));
+    }
+
+    .grid {
+      display: grid;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .grid-4 {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .grid-3 {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .grid-2 {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .wide-middle {
+      grid-template-columns: 1.1fr 1.2fr 0.95fr;
+    }
+
+    .code-grid {
+      grid-template-columns: minmax(0, 1fr) 125px minmax(0, 1fr);
+    }
+
+    .card {
+      min-width: 0;
+      padding: 15px;
+      border: 1px solid var(--border-soft);
+      border-radius: var(--radius);
+      background:
+        linear-gradient(180deg, rgba(14, 29, 48, 0.96), rgba(8, 18, 32, 0.96));
+      box-shadow: var(--shadow);
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .card-title {
+      margin: 0;
+      color: #d8efff;
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .card-kicker {
+      color: var(--cyan);
+      font-size: 10px;
+      font-family: var(--mono);
+    }
+
+    .metric-list {
+      display: grid;
+      gap: 0;
+    }
+
+    .metric {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      min-height: 38px;
+      border-bottom: 1px solid rgba(53, 90, 120, 0.22);
+      font-size: 11px;
+    }
+
+    .metric:last-child {
+      border-bottom: 0;
+    }
+
+    .metric .name {
+      color: var(--muted);
+    }
+
+    .metric .reading {
+      font-family: var(--mono);
+      font-weight: 700;
+      text-align: right;
+    }
+
+    .good { color: var(--green); }
+    .warn-text { color: var(--yellow); }
+    .bad-text { color: var(--red); }
+    .cyan { color: var(--cyan); }
+    .purple { color: var(--purple); }
+
+    .spark {
+      height: 50px;
+      margin: 4px 0 10px;
+      border: 1px solid rgba(36, 199, 255, 0.15);
+      border-radius: 8px;
+      background:
+        linear-gradient(rgba(36, 199, 255, 0.05), rgba(36, 199, 255, 0)),
+        repeating-linear-gradient(0deg, transparent 0 12px, rgba(36, 199, 255, 0.07) 12px 13px),
+        repeating-linear-gradient(90deg, transparent 0 28px, rgba(36, 199, 255, 0.05) 28px 29px);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .spark::after {
+      content: "";
+      position: absolute;
+      inset: 15px -10px 12px -10px;
+      background:
+        linear-gradient(100deg,
+          transparent 0 8%,
+          var(--cyan) 8% 9%,
+          transparent 9% 17%,
+          var(--cyan) 17% 18%,
+          transparent 18% 30%,
+          var(--cyan) 30% 31%,
+          transparent 31% 43%,
+          var(--cyan) 43% 44%,
+          transparent 44% 58%,
+          var(--cyan) 58% 59%,
+          transparent 59% 73%,
+          var(--cyan) 73% 74%,
+          transparent 74%);
+      clip-path: polygon(0 60%, 6% 50%, 10% 67%, 15% 42%, 20% 55%, 26% 24%, 32% 68%, 40% 47%, 48% 62%, 55% 30%, 62% 54%, 68% 38%, 75% 63%, 82% 45%, 90% 54%, 100% 35%, 100% 100%, 0 100%);
+      opacity: 0.75;
+    }
+
+    .score-wrap {
+      display: grid;
+      place-items: center;
+      min-height: 145px;
+    }
+
+    .score-ring {
+      --score: 98;
+      width: 118px;
+      aspect-ratio: 1;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background:
+        radial-gradient(circle at center, var(--panel) 58%, transparent 59%),
+        conic-gradient(var(--cyan) calc(var(--score) * 1%), rgba(36, 199, 255, 0.12) 0);
+      box-shadow: 0 0 28px rgba(36, 199, 255, 0.14);
+    }
+
+    .score-ring strong {
+      display: block;
+      font-size: 28px;
+      text-align: center;
+    }
+
+    .score-ring span {
+      display: block;
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .bar-row {
+      display: grid;
+      grid-template-columns: 88px minmax(0, 1fr) 40px;
+      align-items: center;
+      gap: 10px;
+      margin: 12px 0;
+      font-size: 10px;
+    }
+
+    .bar-row .bar-label {
+      color: var(--muted);
+    }
+
+    .bar {
+      height: 5px;
+      border-radius: 99px;
+      background: rgba(123, 163, 194, 0.14);
+      overflow: hidden;
+    }
+
+    .bar > span {
+      display: block;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--green), var(--cyan));
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: var(--mono);
+      font-size: 10px;
+    }
+
+    th,
+    td {
+      padding: 10px 8px;
+      border-bottom: 1px solid rgba(57, 96, 129, 0.22);
+      text-align: left;
+      vertical-align: middle;
+    }
+
+    th {
+      color: var(--muted);
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+    }
+
+    tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .event-tag {
+      display: inline-flex;
+      padding: 3px 6px;
+      border: 1px solid rgba(36, 199, 255, 0.25);
+      border-radius: 5px;
+      color: var(--cyan);
+      background: rgba(36, 199, 255, 0.06);
+      font-size: 8px;
+    }
+
+    .sensor-list {
+      display: grid;
+      gap: 13px;
+      margin-top: 6px;
+    }
+
+    .sensor {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      font-size: 10px;
+    }
+
+    .sensor .sensor-name {
+      color: var(--muted);
+    }
+
+    .sensor .sensor-state {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-family: var(--mono);
+      color: var(--green);
+    }
+
+    .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: currentColor;
+      box-shadow: 0 0 12px currentColor;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .btn {
+      min-height: 36px;
+      padding: 0 14px;
+      border: 1px solid rgba(36, 199, 255, 0.28);
+      border-radius: 8px;
+      color: #dff7ff;
+      background: linear-gradient(180deg, rgba(36, 199, 255, 0.12), rgba(36, 199, 255, 0.05));
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      transition: 160ms ease;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+      border-color: rgba(36, 199, 255, 0.5);
+      background: rgba(36, 199, 255, 0.16);
+    }
+
+    .btn.secondary {
+      color: #c4d5e2;
+      border-color: rgba(153, 178, 199, 0.22);
+      background: rgba(153, 178, 199, 0.07);
+    }
+
+    .btn.warning {
+      color: #ffd276;
+      border-color: rgba(255, 191, 63, 0.34);
+      background: var(--yellow-soft);
+    }
+
+    .btn.danger {
+      color: #ff8994;
+      border-color: rgba(255, 75, 92, 0.35);
+      background: var(--red-soft);
+    }
+
+    .btn:disabled {
+      cursor: not-allowed;
+      opacity: 0.5;
+      transform: none;
+    }
+
+    .code-label {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 8px;
+      font-family: var(--mono);
+      font-size: 10px;
+    }
+
+    .code-view,
+    .terminal {
+      min-height: 250px;
+      max-height: 420px;
+      overflow: auto;
+      padding: 13px;
+      border: 1px solid rgba(49, 101, 147, 0.28);
+      border-radius: 9px;
+      background: #020812;
+      color: #91c8ef;
+      font-family: var(--mono);
+      font-size: 10px;
+      line-height: 1.55;
+      white-space: pre;
+      tab-size: 2;
+    }
+
+    .terminal {
+      min-height: 250px;
+      color: #9ad8ff;
+      white-space: pre-wrap;
+    }
+
+    .diff-center {
+      display: grid;
+      place-items: center;
+      min-height: 250px;
+      padding: 12px;
+      border: 1px solid rgba(78, 224, 111, 0.25);
+      border-radius: 9px;
+      background: rgba(78, 224, 111, 0.05);
+      text-align: center;
+    }
+
+    .diff-center .shield {
+      font-size: 38px;
+      color: var(--green);
+    }
+
+    .diff-center strong {
+      display: block;
+      margin-top: 10px;
+      color: var(--green);
+      font-size: 18px;
+    }
+
+    .diff-center span {
+      display: block;
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 9px;
+      line-height: 1.5;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .recovery {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .input {
+      width: 100%;
+      min-height: 38px;
+      padding: 0 12px;
+      border: 1px solid rgba(49, 101, 147, 0.35);
+      border-radius: 8px;
+      outline: none;
+      color: var(--text);
+      background: #06101c;
+      font-family: var(--mono);
+      font-size: 11px;
+    }
+
+    .input:focus {
+      border-color: var(--cyan);
+      box-shadow: 0 0 0 3px rgba(36, 199, 255, 0.08);
+    }
+
+    .footer-strip {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .footer-item {
+      padding: 11px 12px;
+      border: 1px solid var(--border-soft);
+      border-radius: 9px;
+      background: rgba(8, 18, 32, 0.72);
+      color: var(--muted);
+      font-size: 9px;
+      text-align: center;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .footer-item strong {
+      color: var(--green);
+    }
+
+    .mobile-toggle {
+      display: none;
+      position: fixed;
+      right: 14px;
+      bottom: 14px;
+      z-index: 50;
+      width: 46px;
+      height: 46px;
+      border: 1px solid rgba(36, 199, 255, 0.35);
+      border-radius: 50%;
+      background: #0a1728;
+      color: var(--cyan);
+      box-shadow: var(--shadow);
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.55; }
+    }
+
+    @media (max-width: 1220px) {
+      .grid-4 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .wide-middle {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .wide-middle > :last-child {
+        grid-column: 1 / -1;
+      }
+
+      .topbar {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 900px) {
+      .app-shell {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        position: fixed;
+        left: 0;
+        transform: translateX(-102%);
+        width: 245px;
+        transition: transform 180ms ease;
+      }
+
+      body.sidebar-open .sidebar {
+        transform: translateX(0);
+      }
+
+      .mobile-toggle {
+        display: grid;
+        place-items: center;
+      }
+
+      .grid-3,
+      .grid-2,
+      .wide-middle,
+      .code-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .diff-center {
+        min-height: 150px;
+      }
+
+      .footer-strip {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .main {
+        padding: 10px;
+      }
+
+      .topbar,
+      .grid-4 {
+        grid-template-columns: 1fr;
+      }
+
+      .card {
+        padding: 13px;
+      }
+
+      .recovery {
+        grid-template-columns: 1fr;
+      }
+
+      .actions .btn {
+        width: 100%;
+      }
+    }
+
+    @media print {
+      body {
+        background: white;
+        color: black;
+      }
+
+      .sidebar,
+      .mobile-toggle,
+      .actions,
+      .recovery {
+        display: none !important;
+      }
+
+      .app-shell {
+        display: block;
+      }
+
+      .main {
+        padding: 0;
+      }
+
+      .card,
+      .top-cell,
+      .footer-item {
+        box-shadow: none;
+        background: white;
+        color: black;
+        border-color: #bbb;
+      }
+
+      .code-view,
+      .terminal {
+        color: black;
+        background: white;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <button class="mobile-toggle" id="mobileToggle" aria-label="Toggle navigation">☰</button>
+
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark">🛡</div>
+        <div>
+          <h1>CYBERSHIELD</h1>
+          <p>Embedded Security Kernel</p>
+        </div>
+      </div>
+
+      <nav class="nav" aria-label="Main navigation">
+        <a class="active" href="#dashboard"><span class="nav-icon">⌂</span>Dashboard</a>
+        <a href="#identity"><span class="nav-icon">◎</span>Identity</a>
+        <a href="#posture"><span class="nav-icon">◇</span>Security Posture</a>
+        <a href="#baseline"><span class="nav-icon">▣</span>Integrity Baseline</a>
+        <a href="#ledger"><span class="nav-icon">◷</span>Evidence Ledger</a>
+        <a href="#sensors"><span class="nav-icon">⌁</span>Tamper Sensors</a>
+        <a href="#partitions"><span class="nav-icon">▤</span>Firmware Slots</a>
+        <a href="#recovery"><span class="nav-icon">↻</span>Recovery Vault</a>
+        <a href="#logs"><span class="nav-icon">›_</span>Console Logs</a>
+      </nav>
+
+      <div class="console-card">
+        <strong>Console Link Connected</strong>
+        <span id="consoleIp">192.168.4.1</span>
+        <span id="sidebarTemp">39.5 °C</span>
+      </div>
+
+      <div class="sidebar-footer">
+        CyberShield Kernel v1.0.4<br />
+        © 2026 AwakenFury
+      </div>
+    </aside>
+
+    <main class="main" id="dashboard">
+      <section class="topbar" aria-label="Node overview">
+        <div class="top-cell">
+          <span class="label">Device Node</span>
+          <span class="value node-online">● ONLINE · CYBERSHIELD-ESP32</span>
+        </div>
+        <div class="top-cell">
+          <span class="label">Node ID</span>
+          <span class="value" id="nodeId">CS-ESP32-0001</span>
+        </div>
+        <div class="top-cell">
+          <span class="label">Firmware</span>
+          <span class="value" id="firmwareVersion">v1.0.4</span>
+        </div>
+        <div class="top-cell">
+          <span class="label">Uptime</span>
+          <span class="value" id="uptime">2d 14h 32m</span>
+        </div>
+        <div class="top-cell">
+          <span class="label">Security Mode</span>
+          <span class="value cyan" id="securityMode">PRODUCTION</span>
+        </div>
+      </section>
+
+      <div id="statusAlert" class="status-banner">
+        🛡 Security Shield Active — Telemetry Lock Engaged
+      </div>
+
+      <section class="grid grid-4">
+        <article class="card">
+          <div class="card-header">
+            <h2 class="card-title">Telemetry Channels</h2>
+            <span class="card-kicker">LIVE</span>
+          </div>
+
+          <div class="spark" aria-hidden="true"></div>
+
+          <div class="metric-list">
+            <div class="metric">
+              <span class="name">Silicon Core Temp</span>
+              <span class="reading bad-text" id="tempVal">39.5 °C</span>
+            </div>
+            <div class="metric">
+              <span class="name">Free System Heap</span>
+              <span class="reading good" id="ramVal">184,320 bytes</span>
+            </div>
+            <div class="metric">
+              <span class="name">Wireless Nodes</span>
+              <span class="reading" id="connVal">1 / 2</span>
+            </div>
+          </div>
+        </article>
+
+        <article class="card" id="identity">
+          <div class="card-header">
+            <h2 class="card-title">Security State</h2>
+            <span class="card-kicker">IDENTITY</span>
+          </div>
+
+          <div class="metric-list">
+            <div class="metric">
+              <span class="name">Active Boot Slot</span>
+              <span class="reading good" id="partVal">ota_1</span>
+            </div>
+            <div class="metric">
+              <span class="name">Hardware Hash</span>
+              <span class="reading" id="hashVal">7f8c9b2a1e...</span>
+            </div>
+            <div class="metric">
+              <span class="name">Magnetic Flags</span>
+              <span class="reading" id="magVal">0</span>
+            </div>
+            <div class="metric">
+              <span class="name">Boot Count</span>
+              <span class="reading" id="bootCount">17</span>
+            </div>
+            <div class="metric">
+              <span class="name">Reset Reason</span>
+              <span class="reading cyan" id="resetReason">POWER_ON</span>
+            </div>
+          </div>
+        </article>
+
+        <article class="card" id="posture">
+          <div class="card-header">
+            <h2 class="card-title">Integrity Status</h2>
+            <span class="card-kicker">POSTURE</span>
+          </div>
+
+          <div class="score-wrap">
+            <div class="score-ring" id="scoreRing" style="--score: 98">
+              <div>
+                <strong id="scoreValue">98%</strong>
+                <span>Overall Score</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="metric-list">
+            <div class="metric"><span class="name">Firmware</span><span class="reading good" id="firmwareIntegrity">MATCH</span></div>
+            <div class="metric"><span class="name">Filesystem</span><span class="reading good" id="filesystemIntegrity">MATCH</span></div>
+            <div class="metric"><span class="name">Partition Table</span><span class="reading good" id="partitionIntegrity">MATCH</span></div>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="card-header">
+            <h2 class="card-title">System Health</h2>
+            <span class="card-kicker">STABLE</span>
+          </div>
+
+          <div class="bar-row">
+            <span class="bar-label">CPU Load</span>
+            <div class="bar"><span id="cpuBar" style="width: 18%"></span></div>
+            <strong id="cpuVal">18%</strong>
+          </div>
+          <div class="bar-row">
+            <span class="bar-label">Memory Used</span>
+            <div class="bar"><span id="memoryBar" style="width: 42%"></span></div>
+            <strong id="memoryVal">42%</strong>
+          </div>
+          <div class="bar-row">
+            <span class="bar-label">Storage Used</span>
+            <div class="bar"><span id="storageBar" style="width: 31%"></span></div>
+            <strong id="storageVal">31%</strong>
+          </div>
+
+          <div class="metric-list">
+            <div class="metric"><span class="name">Voltage</span><span class="reading" id="voltageVal">3.31 V</span></div>
+            <div class="metric"><span class="name">Uptime Stability</span><span class="reading good">GOOD</span></div>
+          </div>
+        </article>
+      </section>
+
+      <section class="grid wide-middle">
+        <article class="card" id="partitions">
+          <div class="card-header">
+            <h2 class="card-title">Flash Hardware Partition Map</h2>
+            <span class="card-kicker">FLASH</span>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>Partition</th>
+                <th>Address</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>ota_0</td>
+                <td>0x00010000</td>
+                <td class="warn-text">Rollback Target</td>
+              </tr>
+              <tr>
+                <td>ota_1</td>
+                <td>0x001D0000</td>
+                <td class="good">Active Layer</td>
+              </tr>
+              <tr>
+                <td>nvs</td>
+                <td>0x00390000</td>
+                <td>Config Storage</td>
+              </tr>
+              <tr>
+                <td>spiffs</td>
+                <td>0x00490000</td>
+                <td>Filesystem</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="actions">
+            <a class="btn" href="/api/export-csv">Export Map CSV</a>
+            <button class="btn secondary" type="button" onclick="window.print()">Print Report</button>
+          </div>
+        </article>
+
+        <article class="card" id="ledger">
+          <div class="card-header">
+            <h2 class="card-title">Evidence Ledger — Latest Events</h2>
+            <span class="card-kicker" id="eventCount">184 EVENTS</span>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Time</th>
+                <th>Event</th>
+                <th>Severity</th>
+              </tr>
+            </thead>
+            <tbody id="ledgerBody">
+              <tr><td>#000184</td><td>15:40:12</td><td>System Boot</td><td><span class="event-tag">INFO</span></td></tr>
+              <tr><td>#000183</td><td>15:40:08</td><td>Integrity Baseline Match</td><td><span class="event-tag">INFO</span></td></tr>
+              <tr><td>#000182</td><td>15:40:05</td><td>Wi-Fi Client Joined</td><td><span class="event-tag">INFO</span></td></tr>
+              <tr><td>#000181</td><td>15:39:59</td><td>Magnetic Sensor Clear</td><td><span class="event-tag">INFO</span></td></tr>
+              <tr><td>#000180</td><td>15:39:41</td><td>Telemetry Stream Start</td><td><span class="event-tag">INFO</span></td></tr>
+            </tbody>
+          </table>
+
+          <div class="metric-list">
+            <div class="metric">
+              <span class="name">Chain Head</span>
+              <span class="reading cyan" id="chainHead">b74c09a2d8f1...</span>
+            </div>
+            <div class="metric">
+              <span class="name">Latest Sequence</span>
+              <span class="reading" id="evidenceSequence">#000184</span>
+            </div>
+          </div>
+        </article>
+
+        <article class="card" id="sensors">
+          <div class="card-header">
+            <h2 class="card-title">Tamper Sensor Matrix</h2>
+            <span class="card-kicker">6 CHANNELS</span>
+          </div>
+
+          <div class="sensor-list">
+            <div class="sensor"><span class="sensor-name">Enclosure Switch</span><span class="sensor-state"><i class="dot"></i>SECURE</span></div>
+            <div class="sensor"><span class="sensor-name">Magnetic Sensor</span><span class="sensor-state"><i class="dot"></i>SECURE</span></div>
+            <div class="sensor"><span class="sensor-name">Light Sensor</span><span class="sensor-state"><i class="dot"></i>NORMAL</span></div>
+            <div class="sensor"><span class="sensor-name">Voltage Monitor</span><span class="sensor-state"><i class="dot"></i>NORMAL</span></div>
+            <div class="sensor"><span class="sensor-name">Glitch Detect</span><span class="sensor-state"><i class="dot"></i>NORMAL</span></div>
+            <div class="sensor"><span class="sensor-name">Debug Interface</span><span class="sensor-state"><i class="dot"></i>LOCKED</span></div>
+          </div>
+        </article>
+      </section>
+
+      <section class="card" id="baseline">
+        <div class="card-header">
+          <h2 class="card-title">Source Code Architecture Integrity — LittleFS Sandbox</h2>
+          <span class="card-kicker">BASELINE VS ACTIVE</span>
+        </div>
+
+        <div class="grid code-grid">
+          <div>
+            <div class="code-label">
+              <span class="cyan">Baseline Source /stock.txt</span>
+              <span class="good">IMMUTABLE</span>
+            </div>
+            <div id="stockCodeBlock" class="code-view">// Loading immutable code baseline...</div>
+          </div>
+
+          <div class="diff-center">
+            <div>
+              <div class="shield">🛡</div>
+              <strong id="diffResult">MATCH</strong>
+              <span id="diffCount">0 differences detected</span>
+            </div>
+          </div>
+
+          <div>
+            <div class="code-label">
+              <span class="warn-text">Active Source /current.txt</span>
+              <span class="warn-text">RUNTIME</span>
+            </div>
+            <div id="currentCodeBlock" class="code-view">// Loading current runtime source...</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="grid grid-2">
+        <article class="card" id="logs">
+          <div class="card-header">
+            <h2 class="card-title">Stream Notification Logs</h2>
+            <span class="card-kicker">SSE /stream</span>
+          </div>
+
+          <div id="logTerminal" class="terminal">[SYSTEM] Core secure network stream channel initialized.
+[SYSTEM] Awaiting live telemetry frames...</div>
+        </article>
+
+        <article class="card" id="recovery">
+          <div class="card-header">
+            <h2 class="card-title">Recovery Vault</h2>
+            <span class="card-kicker">AUTHORIZED ACTIONS</span>
+          </div>
+
+          <div class="metric-list">
+            <div class="metric"><span class="name">Active Partition</span><span class="reading good" id="recoveryPartition">ota_1</span></div>
+            <div class="metric"><span class="name">Rollback Target</span><span class="reading warn-text">ota_0</span></div>
+            <div class="metric"><span class="name">Recovery State</span><span class="reading good">READY</span></div>
+          </div>
+
+          <div class="recovery">
+            <input
+              id="passKey"
+              class="input"
+              type="password"
+              autocomplete="off"
+              placeholder="Verification code token..."
+            />
+            <button id="rollbackButton" class="btn danger" type="button" onclick="triggerRollback()">
+              Execute Rollback
+            </button>
+          </div>
+
+          <div class="actions">
+            <button class="btn" type="button" onclick="runIntegrityCheck()">Run Integrity Check</button>
+            <button class="btn warning" type="button" onclick="restartDevice()">Restart Device</button>
+            <button class="btn secondary" type="button" onclick="clearTerminal()">Clear Terminal</button>
+          </div>
+        </article>
+      </section>
+
+      <section class="footer-strip">
+        <div class="footer-item">Security Mode: <strong id="footerMode">Production</strong></div>
+        <div class="footer-item">Last Security Scan: <span id="lastScan">Not yet completed</span></div>
+        <div class="footer-item">Telemetry: <strong id="streamState">Connecting</strong></div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    "use strict";
+
+    const fallbackStockCode = `// CYBERSHIELD BASELINE SOURCE
+#include <Arduino.h>
+
+void setup() {
+  // Root factory parameters locked
+  initSecurityKernel();
+}
+
+void loop() {
+  enforceBaseline();
+}`;
+
+    const fallbackCurrentCode = `// CYBERSHIELD ACTIVE SOURCE
+#include <Arduino.h>
+
+void setup() {
+  // Runtime secure parameters
+  initSecurityKernel();
+}
+
+void loop() {
+  dnsServer.processNextRequest();
+  server.handleClient();
+}`;
+
+    let eventSource = null;
+    let lastStreamErrorAt = 0;
+
+    function byId(id) {
+      return document.getElementById(id);
+    }
+
+    function setText(id, value) {
+      const el = byId(id);
+      if (el) el.textContent = value;
+    }
+
+    function setBar(id, value) {
+      const safe = Math.max(0, Math.min(100, Number(value) || 0));
+      const el = byId(id);
+      if (el) el.style.width = `${safe}%`;
+    }
+
+    function appendLog(message) {
+      const terminal = byId("logTerminal");
+      if (!terminal) return;
+
+      const timestamp = new Date().toLocaleTimeString([], {
+        hour12: false,
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit"
+      });
+
+      terminal.textContent += `\n[${timestamp}] ${message}`;
+      terminal.scrollTop = terminal.scrollHeight;
+    }
+
+    function clearTerminal() {
+      byId("logTerminal").textContent = "[SYSTEM] Terminal buffer cleared.";
+    }
+
+    function updateStatusBanner(mode, message) {
+      const banner = byId("statusAlert");
+      banner.className = "status-banner";
+
+      if (mode === "bad") banner.classList.add("bad");
+      if (mode === "warn") banner.classList.add("warn");
+
+      banner.textContent = message;
+    }
+
+    function updateTelemetry(data) {
+      if (Number.isFinite(data.temp)) {
+        const temp = `${data.temp.toFixed(1)} °C`;
+        setText("tempVal", temp);
+        setText("sidebarTemp", temp);
+      }
+
+      if (Number.isFinite(data.free_ram)) {
+        setText("ramVal", `${data.free_ram.toLocaleString()} bytes`);
+      }
+
+      setText("connVal", `${data.connections ?? 0} / ${data.max_connections ?? 0}`);
+      setText("magVal", String(data.magnetic_events ?? 0));
+      setText("partVal", data.partition ?? "unknown");
+      setText("recoveryPartition", data.partition ?? "unknown");
+
+      const hash = String(data.hash ?? "unavailable");
+      setText("hashVal", hash.length > 12 ? `${hash.slice(0, 12)}...` : hash);
+
+      if (data.uptime) setText("uptime", String(data.uptime));
+      if (data.boot_count !== undefined) setText("bootCount", String(data.boot_count));
+      if (data.reset_reason) setText("resetReason", String(data.reset_reason));
+      if (data.node_id) setText("nodeId", String(data.node_id));
+      if (data.firmware) setText("firmwareVersion", String(data.firmware));
+      if (data.security_mode) {
+        setText("securityMode", String(data.security_mode).toUpperCase());
+        setText("footerMode", String(data.security_mode));
+      }
+
+      if (Number.isFinite(data.cpu_load)) {
+        setText("cpuVal", `${data.cpu_load}%`);
+        setBar("cpuBar", data.cpu_load);
+      }
+
+      if (Number.isFinite(data.memory_used)) {
+        setText("memoryVal", `${data.memory_used}%`);
+        setBar("memoryBar", data.memory_used);
+      }
+
+      if (Number.isFinite(data.storage_used)) {
+        setText("storageVal", `${data.storage_used}%`);
+        setBar("storageBar", data.storage_used);
+      }
+
+      if (Number.isFinite(data.voltage)) {
+        setText("voltageVal", `${data.voltage.toFixed(2)} V`);
+      }
+
+      if (Number.isFinite(data.integrity_score)) {
+        const score = Math.max(0, Math.min(100, data.integrity_score));
+        setText("scoreValue", `${score}%`);
+        byId("scoreRing").style.setProperty("--score", score);
+      }
+
+      if (data.integrity) {
+        setText("firmwareIntegrity", data.integrity.firmware ?? "UNKNOWN");
+        setText("filesystemIntegrity", data.integrity.filesystem ?? "UNKNOWN");
+        setText("partitionIntegrity", data.integrity.partition_table ?? "UNKNOWN");
+      }
+
+      if (data.chain_head) setText("chainHead", String(data.chain_head));
+      if (data.evidence_sequence !== undefined) {
+        const seq = `#${String(data.evidence_sequence).padStart(6, "0")}`;
+        setText("evidenceSequence", seq);
+      }
+
+      if (data.compromised) {
+        updateStatusBanner(
+          "bad",
+          `🚨 Critical Integrity Alert — ${data.reason || "Unspecified integrity failure"}`
+        );
+      } else {
+        updateStatusBanner(
+          "good",
+          "🛡 Security Shield Active — Telemetry Lock Engaged"
+        );
+      }
+
+      if (data.log_msg) appendLog(data.log_msg);
+    }
+
+    async function loadCodeFile(type, elementId, fallback) {
+      try {
+        const response = await fetch(`/api/view-code?type=${encodeURIComponent(type)}`, {
+          cache: "no-store"
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+
+        byId(elementId).textContent = await response.text();
+      } catch (error) {
+        byId(elementId).textContent = fallback;
+        appendLog(`[CODE VIEW] ${type} source fallback loaded.`);
+      }
+    }
+
+    async function loadCodeFiles() {
+      await Promise.all([
+        loadCodeFile("stock", "stockCodeBlock", fallbackStockCode),
+        loadCodeFile("current", "currentCodeBlock", fallbackCurrentCode)
+      ]);
+
+      compareCodeBlocks();
+    }
+
+    function compareCodeBlocks() {
+      const stock = byId("stockCodeBlock").textContent.trim();
+      const current = byId("currentCodeBlock").textContent.trim();
+
+      if (stock === current) {
+        setText("diffResult", "MATCH");
+        setText("diffCount", "0 differences detected");
+        return;
+      }
+
+      const stockLines = stock.split("\n");
+      const currentLines = current.split("\n");
+      const longest = Math.max(stockLines.length, currentLines.length);
+      let differences = 0;
+
+      for (let i = 0; i < longest; i += 1) {
+        if ((stockLines[i] ?? "") !== (currentLines[i] ?? "")) {
+          differences += 1;
+        }
+      }
+
+      setText("diffResult", differences === 0 ? "MATCH" : "REVIEW");
+      setText("diffCount", `${differences} differing line${differences === 1 ? "" : "s"} detected`);
+    }
+
+    function connectEventStream() {
+      if (!window.EventSource) {
+        updateStatusBanner("warn", "⚠ Live telemetry unsupported by this browser");
+        setText("streamState", "Unsupported");
+        appendLog("[STREAM] EventSource is unavailable.");
+        return;
+      }
+
+      eventSource = new EventSource("/stream");
+
+      eventSource.onopen = () => {
+        setText("streamState", "Connected");
+        updateStatusBanner("good", "🛡 Security Shield Active — Telemetry Lock Engaged");
+        appendLog("[STREAM] Live telemetry connected.");
+      };
+
+      eventSource.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          updateTelemetry(data);
+        } catch (error) {
+          appendLog("[STREAM ERROR] Invalid telemetry frame received.");
+          console.error(error);
+        }
+      };
+
+      eventSource.onerror = () => {
+        const now = Date.now();
+
+        setText("streamState", "Reconnecting");
+        updateStatusBanner("warn", "⚠ Telemetry Stream Disconnected — Reconnecting");
+
+        if (now - lastStreamErrorAt > 5000) {
+          appendLog("[STREAM] Link interrupted. Browser will retry automatically.");
+          lastStreamErrorAt = now;
+        }
+      };
+    }
+
+    async function runIntegrityCheck() {
+      appendLog("[INTEGRITY] Manual verification requested.");
+      updateStatusBanner("warn", "⏳ Integrity Verification In Progress");
+
+      try {
+        const response = await fetch("/api/integrity-check", {
+          method: "POST"
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+
+        const data = await response.json().catch(() => ({}));
+        updateTelemetry(data);
+
+        const now = new Date().toLocaleString();
+        setText("lastScan", now);
+        appendLog("[INTEGRITY] Verification completed.");
+      } catch (error) {
+        setTimeout(() => {
+          updateStatusBanner("good", "🛡 Security Shield Active — Telemetry Lock Engaged");
+          setText("lastScan", new Date().toLocaleString());
+          appendLog("[INTEGRITY] Demo fallback completed. No remote API response.");
+        }, 700);
+      }
+    }
+
+    async function triggerRollback() {
+      const input = byId("passKey");
+      const button = byId("rollbackButton");
+      const passphrase = input.value.trim();
+
+      if (!passphrase) {
+        alert("Enter verification code token.");
+        input.focus();
+        return;
+      }
+
+      if (!confirm("Confirm rollback to the alternate firmware partition?")) {
+        return;
+      }
+
+      button.disabled = true;
+      button.textContent = "Validating...";
+      appendLog("[RECOVERY] Rollback authorization submitted.");
+
+      try {
+        const body = new URLSearchParams();
+        body.set("passphrase", passphrase);
+
+        const response = await fetch("/api/rollback", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8"
+          },
+          body
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+
+        appendLog("[RECOVERY] Rollback accepted. Device reboot expected.");
+        updateStatusBanner("warn", "↻ Firmware Rollback Accepted — Device Rebooting");
+        button.textContent = "Device Rebooting";
+
+        setTimeout(waitForDeviceRecovery, 4000);
+      } catch (error) {
+        appendLog("[RECOVERY] Authorization failed or endpoint unavailable.");
+        alert("Rollback was not authorized. The attempt should be recorded in the evidence ledger.");
+        button.disabled = false;
+        button.textContent = "Execute Rollback";
+      } finally {
+        input.value = "";
+      }
+    }
+
+    async function waitForDeviceRecovery() {
+      try {
+        const response = await fetch("/api/status", { cache: "no-store" });
+
+        if (response.ok) {
+          window.location.reload();
+          return;
+        }
+      } catch (error) {
+        // Device may still be restarting.
+      }
+
+      setTimeout(waitForDeviceRecovery, 2500);
+    }
+
+    async function restartDevice() {
+      if (!confirm("Restart the CyberShield node?")) return;
+
+      appendLog("[SYSTEM] Restart command requested.");
+
+      try {
+        const response = await fetch("/api/restart", { method: "POST" });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+
+        updateStatusBanner("warn", "↻ Device Restarting");
+        setTimeout(waitForDeviceRecovery, 3500);
+      } catch (error) {
+        appendLog("[SYSTEM] Restart endpoint unavailable.");
+      }
+    }
+
+    function enableMobileNavigation() {
+      const toggle = byId("mobileToggle");
+
+      toggle.addEventListener("click", () => {
+        document.body.classList.toggle("sidebar-open");
+      });
+
+      document.querySelectorAll(".nav a").forEach((link) => {
+        link.addEventListener("click", () => {
+          document.body.classList.remove("sidebar-open");
+        });
+      });
+    }
+
+    function startClock() {
+      const update = () => {
+        const now = new Date();
+        document.title = `CyberShield · ${now.toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit"
+        })}`;
+      };
+
+      update();
+      setInterval(update, 30000);
+    }
+
+    window.addEventListener("load", () => {
+      enableMobileNavigation();
+      startClock();
+      loadCodeFiles();
+      connectEventStream();
+    });
+
+    window.addEventListener("beforeunload", () => {
+      if (eventSource) eventSource.close();
+    });
+  </script>
+</body>
+</html>
